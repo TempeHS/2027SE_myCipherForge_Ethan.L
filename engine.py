@@ -1,7 +1,7 @@
 """
 CipherForge — Encryption Engine
 ================================
-Author: [Your Name]
+Author: [Ethan Le]
 Date: 2026
 
 This file contains my custom 5-layer encryption algorithm.
@@ -19,54 +19,6 @@ RULES:
 """
 
 
-def simple_shift(text, shift):
-    """
-    Shift every character by 'shift' positions.
-
-    This is a simple Caesar cipher that works on ALL printable characters,
-    not just letters. It wraps around using modular arithmetic.
-
-    Args:
-        text: The string to encrypt
-        shift: How many positions to shift (positive = forward)
-
-    Returns:
-        The encrypted string
-    """
-    result = ""
-
-    for char in text:
-        if 32 <= ord(char) <= 126:  # Printable ASCII range
-            # Convert to 0-94 range
-            position = ord(char) - 32
-            # Shift and wrap
-            new_position = (position + shift) % 95
-            # Convert back to character
-            result += chr(new_position + 32)
-        else:
-            # Keep non-printable characters unchanged
-            result += char
-
-    return result
-
-
-def simple_unshift(text, shift):
-    """
-    Reverse the simple_shift encryption.
-
-    Decryption is just shifting in the opposite direction!
-
-    Args:
-        text: The encrypted string
-        shift: The same shift value used for encryption
-
-    Returns:
-        The decrypted (original) string
-    """
-    # Decryption = shifting backwards (negative)
-    return simple_shift(text, -shift)
-
-
 def phase1_encrypt(text, key):
 
     shift = key.get("shift", 5)
@@ -79,6 +31,9 @@ def phase1_encrypt(text, key):
             result += chr(new_position + 32)
         else:
             result += char
+
+    if "A" <= char <= "Z":
+        result += chr(ord("Z")) - (ord(chr)) - ord("A")
 
     return result
 
@@ -110,6 +65,58 @@ def phase1_decrypt(text, key):
     return result
 
 
+def phase2_encrypt(text, key):
+    """
+    Phase 2: Transposition - Rearrange character position.
+
+    Use block reversal: split into blocks and reverse each one.
+    This layer changes WHERE each character is (its position).
+
+    Args:
+        text: The string to transform (already Phase 1 encrypted)
+        key: Dictionary containing encryption settings
+
+    Returns:
+        The transposed string with characters rearranged
+    """
+    block_size = key.get("block_size", 4)
+
+    result = ""
+
+    # Process text in chunks of block_size
+    for i in range(0, len(text), block_size):
+        # Extract this block (might be shorter at the end)
+        block = text[i : i + block_size]
+        # Reverse the block and add to result
+        result += block[::-1]
+
+    return result
+    """
+    Phase 2: Reverse the transposition.
+
+    For block reversal, decryption is the same as encryption. 
+    Reversing a revered block returns the original. 
+
+    Args:
+        text: The transposed strong
+        key: Dictionary containing the same encryption settings
+
+    Returns:
+        The un-transposed string
+    """
+
+
+def phase2_decrypt(text, key):
+    block_size = key.get("block_size", 4)
+
+    result = ""
+    for i in range(0, len(text), block_size):
+        block = text[i : i + block_size]
+        result += block[::-1]
+
+    return result
+
+
 def encrypt(text, key):
     """
     CipherForge Master Encryption -- Applies all 5 phases.
@@ -127,8 +134,8 @@ def encrypt(text, key):
     # Phase 1: Substitution
     result = phase1_encrypt(text, key)
 
-    # TODO: Phase 2 - Transposition
-    # result = phase2_encrypted(result, key)
+    # Phase 2 - Transposition
+    result = phase2_encrypt(result, key)
 
     # TODO: phase 3 - Key-Dependent
     # result = phase3_encrypted(result, key)
@@ -168,8 +175,8 @@ def decrypt(text, key):
     # TODO: Phase 3 — Reverse Key-Dependent
     # result = phase3_decrypt(result, key)
 
-    # TODO: Phase 2 — Reverse Transposition
-    # result = phase2_decrypt(result, key)
+    # Phase 2 — Reverse Transposition
+    result = phase2_decrypt(result, key)
 
     # Phase 1: Reverse Substitution (last!)
     result = phase1_decrypt(result, key)
